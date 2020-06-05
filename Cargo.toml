@@ -1,0 +1,12 @@
+[package]
+name = "k2_zip"
+version = "0.1.0"
+authors = ["GGabi <gabrielroels@googlemail.com>", "ChrisFoster4 <chrismarkfoster@yahoo.co.uk>"]
+edition = "2018"
+description = "A file compression algorithm based on the K2Tree."
+license = "MIT"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+k2_tree = "0.2.0"
