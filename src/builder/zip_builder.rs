@@ -1,4 +1,3 @@
-
 use k2_tree::K2Tree;
 use bitvec::vec::BitVec;
 
@@ -24,29 +23,91 @@ impl K2Zip {
       leaves: k2tree.leaves,
     }
   }
+  pub fn from_bytes(bytes: Vec<u8>) -> Self {
+    //first 4 - k
+    //4 - exp
+    //4 - stem_len
+    //? - stems
+    //4 - leaf_len
+    //? - leaves
+    let mut remaining_k = bytes;
+
+    let mut remaining_exp = remaining_k.split_off(4);
+    let k_bytes = [remaining_k[0], remaining_k[1], remaining_k[2], remaining_k[3]];
+    let k = u32::from_le_bytes(k_bytes);
+
+    let mut remaining_stem_len = remaining_exp.split_off(4);
+    let exp_bytes = [remaining_exp[0], remaining_exp[1], remaining_exp[2], remaining_exp[3]];
+    let exp = u32::from_le_bytes(exp_bytes);
+
+    let mut remaining_stems = remaining_stem_len.split_off(4);
+    let stem_len_bytes = [remaining_stem_len[0], remaining_stem_len[1], remaining_stem_len[2], remaining_stem_len[3]];
+    let stem_len = u32::from_le_bytes(stem_len_bytes);
+
+    let mut stems: Vec<usize> = Vec::new();
+    for stem_num in 0..stem_len {
+      let stem = remaining_stems.split_off(std::mem::size_of::<usize>());
+      let mut stem_bytes: [u8; std::mem::size_of::<usize>()] = [0; std::mem::size_of::<usize>()];
+      for byte_num in 0..std::mem::size_of::<usize>() {
+        stem_bytes[byte_num] = stem[byte_num];
+      }
+      stems.push(usize::from_le_bytes(stem_bytes));
+    }
+
+    let mut remaining_leaf_len = remaining_stems;
+    let mut remaining_leaves = remaining_leaf_len.split_off(4);
+    let leaf_len_bytes = [remaining_leaf_len[0], remaining_leaf_len[1], remaining_leaf_len[2], remaining_leaf_len[3]];
+    let leaf_len = u32::from_le_bytes(leaf_len_bytes);
+
+    let mut leaves: Vec<usize> = Vec::new();
+    for leaf_num in 0..stem_len {
+      let leaf = remaining_leaves.split_off(std::mem::size_of::<usize>());
+      let mut leaf_bytes: [u8; std::mem::size_of::<usize>()] = [0; std::mem::size_of::<usize>()];
+      for byte_num in 0..std::mem::size_of::<usize>() {
+        leaf_bytes[byte_num] = leaf[byte_num];
+      }
+      leaves.push(usize::from_le_bytes(leaf_bytes));
+    }
+
+    if remaining_leaves.len() != 0 { panic!("Bruh") }
+
+    K2Zip {
+      k,
+      exp,
+      stem_len,
+      stems: BitVec::from_vec(stems),
+      leaf_len,
+      leaves: BitVec::from_vec(leaves),
+    }
+  }
   pub fn into_bytes(self) -> Vec<u8> {
-    //Should it be Big Endian?
+    //Should it be Little Endian?
     let mut buf: Vec<u8> = Vec::new();
-    buf.extend(self.k.to_ne_bytes().iter());
-    buf.extend(self.exp.to_ne_bytes().iter());
-    buf.extend(self.stem_len.to_ne_bytes().iter());
+    buf.extend(self.k.to_le_bytes().iter());
+    buf.extend(self.exp.to_le_bytes().iter());
+    buf.extend(self.stem_len.to_le_bytes().iter());
     buf.extend(
       self.stems
       .into_vec()
       .iter()
-      .map(|n| n.to_ne_bytes().to_vec())
+      .map(|n| n.to_le_bytes().to_vec())
       .flatten()
       .collect::<Vec<u8>>()
     );
-    buf.extend(self.leaf_len.to_ne_bytes().iter());
+    buf.extend(self.leaf_len.to_le_bytes().iter());
     buf.extend(
       self.leaves
       .into_vec()
       .iter()
-      .map(|n| n.to_ne_bytes().to_vec())
+      .map(|n| n.to_le_bytes().to_vec())
       .flatten()
       .collect::<Vec<u8>>()
     );
     buf
   }
 }
+
+//Lsb0 Msb0
+//6:
+//Lsb0 => [011.......] ([usize])
+//Msb0 => [1, 1, 0]
