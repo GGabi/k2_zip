@@ -1,5 +1,5 @@
 use k2_tree::K2Tree;
-use bitvec::vec::BitVec;
+use bitvec::{bitvec, vec::BitVec};
 
 #[derive(Debug, Clone)]
 pub struct K2Zip {
@@ -146,9 +146,64 @@ impl K2Zip {
     );
     buf
   }
+  pub fn into_k2tree(self) -> K2Tree {
+    let k = self.k as usize;
+    let matrix_width = k.pow(self.exp) as usize;
+    let max_slayers = (self.exp - 1) as usize;
+    let mut slayer_starts: Vec<usize> = vec![0, k*k];
+    /*
+      Find out out many stem-layers,
+      Start at the top, find out the beginning of each layer,
+      Start at beginning of last layer, find out each stem_to_leaf value
+      End
+    */
+    //If the tree is empty, return an empty tree
+    if self.stems == bitvec![0,0,0,0] {
+      return K2Tree {
+        k,
+        matrix_width,
+        max_slayers,
+        slayer_starts: vec![0],
+        stems: bitvec![0,0,0,0],
+        stem_to_leaf: Vec::new(),
+        leaves: BitVec::new(),
+      }
+    }
+    //Rebuild slayer_starts
+    let mut curr_slayer = 0;
+    while curr_slayer < max_slayers-2 {
+      let num_stems_in_next_layer = ones_in_range(
+        &self.stems,
+        slayer_starts[curr_slayer],
+        slayer_starts[curr_slayer+1],
+      );
+      let next_layer_begin = slayer_starts[curr_slayer+1];
+      slayer_starts.push(next_layer_begin + (k*k * num_stems_in_next_layer));
+      curr_slayer += 1;
+    }
+    //Rebuild stem_to_leaf
+    let stem_to_leaf = one_positions_range(
+      &self.stems,
+      slayer_starts[max_slayers-1],
+      self.stems.len()
+    );
+    K2Tree {
+      k,
+      matrix_width,
+      max_slayers,
+      slayer_starts,
+      stems: self.stems,
+      stem_to_leaf,
+      leaves: self.leaves,
+    }
+  }
 }
 
-//Lsb0 Msb0
-//6:
-//Lsb0 => [011.......] ([usize])
-//Msb0 => [1, 1, 0]
+fn ones_in_range(bits: &BitVec, begin: usize, end: usize) -> usize {
+  bits[begin..end].into_iter().fold(0, |total, bit| total + *bit as usize)
+}
+fn one_positions_range(bits: &BitVec, begin: usize, end: usize) -> Vec<usize> {
+  bits[begin..end].into_iter().enumerate().filter_map(|(pos, bit)|
+    if *bit { Some(pos) } else { None }
+  ).collect()
+}

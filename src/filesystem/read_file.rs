@@ -1,7 +1,5 @@
 use memmap2::MmapOptions;
-use std::fs::{File, OpenOptions};
-use std::io::prelude::*;
-use std::mem;
+use std::fs::{OpenOptions};
 use std::path::Path;
 use std::slice;
 
