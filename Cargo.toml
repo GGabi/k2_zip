@@ -11,3 +11,4 @@ license = "MIT"
 [dependencies]
 k2_tree = "0.2.0"
 bitvec = "0.17.4"
+memmap2 = "0.1.0"
