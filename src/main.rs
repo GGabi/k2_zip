@@ -25,5 +25,13 @@ mod filesystem;
 mod builder;
 
 fn main() {
-    println!("Hello, world!");
+    let file_stream = filesystem::read_file::mmap_file(std::path::Path::new("hello.txt"));
+    let k2tree = builder::k2_builder::k2tree_from_bytes(file_stream.data);
+    let k2zip = builder::zip_builder::K2Zip::from_k2tree(k2tree);
+    dbg!(&k2zip);
+    let compressed_data = k2zip.clone().into_bytes();
+    dbg!(&compressed_data);
+    let uncompressed_k2zip = builder::zip_builder::K2Zip::from_bytes(compressed_data);
+    dbg!(uncompressed_k2zip);
+    println!("--- END ---");
 }

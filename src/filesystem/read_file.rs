@@ -7,8 +7,8 @@ use std::slice;
 
 //Ensuring the data doesn't outlive the mmap owning the ptr to the data
 pub struct InMemFile<'a>{
-    data:&'a[u8],
-    mmap: memmap2::Mmap,
+    pub data:&'a[u8],
+    pub mmap: memmap2::Mmap,
 }
 
 pub fn mmap_file(p: &Path) -> InMemFile {
